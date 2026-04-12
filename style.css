@@ -1,0 +1,25 @@
+/* assets/css/style.css */
+body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+.card {
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+}
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+}
+.btn-primary {
+    border-radius: 12px;
+    padding: 10px 20px;
+}
+.header {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.product-card {
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+}
