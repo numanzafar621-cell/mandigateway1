@@ -1,3 +1,12 @@
+CREATE TABLE pages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    content LONGTEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 CREATE DATABASE mandigateway_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE mandigateway_db;
 
@@ -79,7 +88,7 @@ CREATE TABLE sliders (
 -- Orders
 CREATE TABLE orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    store_user_id INT,
+    store_user_id INT,g
     customer_name VARCHAR(255),
     customer_phone VARCHAR(20),
     customer_address TEXT,
