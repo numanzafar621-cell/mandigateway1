@@ -6,6 +6,7 @@ CREATE TABLE pages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+ALTER TABLE products ADD COLUMN status TINYINT(1) DEFAULT 0 COMMENT '0=pending, 1=active, 2=rejected';
 
 <?php
 include '../includes/config.php';
