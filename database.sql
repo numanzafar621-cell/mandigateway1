@@ -7,6 +7,124 @@ CREATE TABLE pages (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+<?php
+include '../includes/config.php';
+session_start();
+if (!isset($_SESSION['admin_logged_in'])) {
+    header("Location: login.php");
+    exit;
+}
+
+// گیٹ وے کی معلومات اپڈیٹ کرنا
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_gateway'])) {
+    $gateway = $_POST['gateway_name'];
+    $is_active = isset($_POST['is_active']) ? 1 : 0;
+    $sandbox_mode = isset($_POST['sandbox_mode']) ? 1 : 0;
+    $merchant_id = $_POST['merchant_id'];
+    $merchant_password = $_POST['merchant_password'];
+    $integrity_salt = $_POST['integrity_salt'];
+    $api_key = $_POST['api_key'];
+    $secret_key = $_POST['secret_key'];
+    $public_key = $_POST['public_key'];
+    $return_url = $_POST['return_url'];
+    
+    $stmt = $pdo->prepare("UPDATE payment_gateways SET 
+        is_active = ?, sandbox_mode = ?, merchant_id = ?, 
+        merchant_password = ?, integrity_salt = ?, api_key = ?, 
+        secret_key = ?, public_key = ?, return_url = ? 
+        WHERE gateway_name = ?");
+    $stmt->execute([$is_active, $sandbox_mode, $merchant_id, 
+        $merchant_password, $integrity_salt, $api_key, 
+        $secret_key, $public_key, $return_url, $gateway]);
+    $success = "Gateway updated successfully!";
+}
+
+// تمام گیٹ ویز حاصل کریں
+$gateways = $pdo->query("SELECT * FROM payment_gateways")->fetchAll();
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Gateways - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-4">
+    <h2>Payment Gateway Settings</h2>
+    <?php if(isset($success)): ?>
+        <div class="alert alert-success"><?= $success ?></div>
+    <?php endif; ?>
+    
+    <div class="row">
+        <?php foreach($gateways as $gw): ?>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <strong><?= ucfirst($gw['gateway_name']) ?></strong>
+                    <span class="badge <?= $gw['is_active'] ? 'bg-success' : 'bg-secondary' ?> float-end">
+                        <?= $gw['is_active'] ? 'Active' : 'Inactive' ?>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <input type="hidden" name="gateway_name" value="<?= $gw['gateway_name'] ?>">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="is_active" <?= $gw['is_active'] ? 'checked' : '' ?>>
+                            <label>Enable Gateway</label>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="sandbox_mode" <?= $gw['sandbox_mode'] ? 'checked' : '' ?>>
+                            <label>Sandbox Mode (Test)</label>
+                        </div>
+                        <?php if($gw['gateway_name'] == 'jazzcash'): ?>
+                        <div class="mb-2"><input type="text" name="merchant_id" class="form-control" placeholder="Merchant ID" value="<?= htmlspecialchars($gw['merchant_id']) ?>"></div>
+                        <div class="mb-2"><input type="text" name="merchant_password" class="form-control" placeholder="Merchant Password" value="<?= htmlspecialchars($gw['merchant_password']) ?>"></div>
+                        <div class="mb-2"><input type="text" name="integrity_salt" class="form-control" placeholder="Integrity Salt" value="<?= htmlspecialchars($gw['integrity_salt']) ?>"></div>
+                        <?php elseif($gw['gateway_name'] == 'easypaisa'): ?>
+                        <div class="mb-2"><input type="text" name="api_key" class="form-control" placeholder="API Key / Store ID" value="<?= htmlspecialchars($gw['api_key']) ?>"></div>
+                        <div class="mb-2"><input type="text" name="secret_key" class="form-control" placeholder="Secret Key / Hash Key" value="<?= htmlspecialchars($gw['secret_key']) ?>"></div>
+                        <?php elseif($gw['gateway_name'] == 'stripe'): ?>
+                        <div class="mb-2"><input type="text" name="public_key" class="form-control" placeholder="Publishable Key" value="<?= htmlspecialchars($gw['public_key']) ?>"></div>
+                        <div class="mb-2"><input type="text" name="secret_key" class="form-control" placeholder="Secret Key" value="<?= htmlspecialchars($gw['secret_key']) ?>"></div>
+                        <?php endif; ?>
+                        <div class="mb-2"><input type="text" name="return_url" class="form-control" placeholder="Return/Callback URL" value="<?= htmlspecialchars($gw['return_url']) ?>"></div>
+                        <button type="submit" name="update_gateway" class="btn btn-primary btn-sm">Save Settings</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    
+    <h3 class="mt-5">All Transactions</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr><th>ID</th><th>User</th><th>Gateway</th><th>Transaction ID</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+            <?php
+            $trans = $pdo->query("SELECT t.*, u.username FROM transactions t 
+                                 JOIN users u ON t.user_id = u.id 
+                                 ORDER BY t.id DESC")->fetchAll();
+            foreach($trans as $tr): ?>
+            <tr>
+                <td><?= $tr['id'] ?></td>
+                <td><?= htmlspecialchars($tr['username']) ?></td>
+                <td><?= $tr['gateway_name'] ?></td>
+                <td><?= $tr['transaction_id'] ?></td>
+                <td>$<?= $tr['amount'] ?></td>
+                <td><span class="badge bg-<?= $tr['status'] == 'success' ? 'success' : ($tr['status'] == 'pending' ? 'warning' : 'danger') ?>">
+                    <?= $tr['status'] ?>
+                </span></td>
+                <td><?= $tr['created_at'] ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
+                
 CREATE DATABASE mandigateway_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE mandigateway_db;
 
